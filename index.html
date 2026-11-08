@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The IT Industry — An Interactive Mind Map</title>
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg2: #11141b;
+    --panel: #161a23;
+    --panel-2: #1c2130;
+    --line: #2a303c;
+    --text: #e8ebf1;
+    --muted: #8b93a3;
+    --accent: #6ea8fe;
+    --hit: #ffd479;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+  body {
+    background: radial-gradient(1200px 800px at 50% 40%, var(--bg2), var(--bg));
+    color: var(--text);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- top bar ---------- */
+  header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 18px;
+    background: color-mix(in srgb, var(--bg) 70%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: -0.01em; white-space: nowrap; }
+  header .tag { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .spacer { flex: 1; }
+  .search { position: relative; width: 240px; }
+  .search input {
+    width: 100%; background: var(--panel); border: 1px solid var(--line); color: var(--text);
+    border-radius: 9px; padding: 8px 30px 8px 30px; font-size: 13px; outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(110,168,254,.15); }
+  .search .ic { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; }
+  .search .cl { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; display: none; }
+  button.btn {
+    background: var(--panel); border: 1px solid var(--line); color: var(--text);
+    border-radius: 9px; padding: 8px 11px; font-size: 12.5px; cursor: pointer; white-space: nowrap;
+    transition: background .15s, border-color .15s;
+  }
+  button.btn:hover { background: var(--panel-2); border-color: var(--accent); }
+
+  /* ---------- canvas ---------- */
+  #stage { position: fixed; inset: 0; cursor: grab; }
+  #stage.grabbing { cursor: grabbing; }
+  svg { width: 100%; height: 100%; display: block; }
+
+  .edge { fill: none; stroke-width: 1.6px; opacity: .5; transition: opacity .2s, stroke-width .2s; }
+
+  .node { cursor: pointer; }
+  .node .bg {
+    rx: 13; ry: 13;
+    stroke-width: 1.4px;
+    transition: filter .18s, transform .18s;
+  }
+  .node text {
+    fill: var(--text); font-family: var(--font); dominant-baseline: middle;
+    pointer-events: none; user-select: none;
+  }
+  .node .sub { fill: var(--muted); }
+  .node:hover .bg { filter: brightness(1.18); }
+  .node.has-children .expander { font-weight: 700; }
+  .node .expander { fill: #fff; opacity: .85; font-size: 13px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+
+  .node.dim { opacity: .16; }
+  .edge.dim { opacity: .07; }
+  .node.match .bg { stroke: var(--hit) !important; stroke-width: 2.4px; }
+
+  /* ---------- controls bottom-right ---------- */
+  .zoomctl {
+    position: fixed; right: 16px; bottom: 16px; z-index: 20;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .zoomctl button {
+    width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--text); font-size: 17px; cursor: pointer;
+  }
+  .zoomctl button:hover { background: var(--panel-2); border-color: var(--accent); }
+
+  /* ---------- detail panel ---------- */
+  #detail {
+    position: fixed; left: 16px; bottom: 16px; z-index: 20;
+    width: 320px; max-width: calc(100vw - 32px);
+    background: color-mix(in srgb, var(--panel) 94%, transparent);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 14px; padding: 15px 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.4);
+    transform: translateY(140%); transition: transform .25s cubic-bezier(.2,.8,.2,1);
+  }
+  #detail.show { transform: translateY(0); }
+  #detail .d-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: middle; }
+  #detail h3 { margin: 0 0 2px; font-size: 15px; font-weight: 650; display: flex; align-items: center; }
+  #detail .path { color: var(--muted); font-size: 11px; margin: 0 0 8px; }
+  #detail p.desc { color: var(--text); font-size: 13px; margin: 0 0 12px; line-height: 1.5; }
+  #detail a.open {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent); color: #0a0d14; font-weight: 600; font-size: 12.5px;
+    text-decoration: none; padding: 7px 12px; border-radius: 9px;
+  }
+  #detail a.open:hover { filter: brightness(1.08); }
+  #detail .dclose { position: absolute; top: 10px; right: 12px; background: none; border: none; color: var(--muted); font-size: 17px; cursor: pointer; }
+
+  /* ---------- hint + legend ---------- */
+  .hint {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 15;
+    color: var(--muted); font-size: 12px; background: color-mix(in srgb, var(--panel) 80%, transparent);
+    border: 1px solid var(--line); padding: 7px 14px; border-radius: 20px; pointer-events: none;
+    transition: opacity .4s;
+  }
+  @media (max-width: 760px) {
+    header h1 { font-size: 13px; } header .tag { display: none; }
+    .search { width: 150px; } #btnLens { display: none; }
+    .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>The IT Industry</h1>
+  <span class="tag">a mind map of what each domain actually solves</span>
+  <div class="spacer"></div>
+  <div class="search">
+    <span class="ic">⌕</span>
+    <input id="search" type="text" placeholder="Search a field…" autocomplete="off" spellcheck="false" />
+    <button class="cl" id="clearBtn">×</button>
+  </div>
+  <button class="btn" id="btnLens">Work lens</button>
+  <button class="btn" id="btnReset">Reset view</button>
+</header>
+
+<div id="stage">
+  <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+    <g id="viewport">
+      <g id="edges"></g>
+      <g id="nodes"></g>
+    </g>
+  </svg>
+</div>
+
+<div class="zoomctl">
+  <button id="zin" title="Zoom in">+</button>
+  <button id="zout" title="Zoom out">−</button>
+  <button id="zfit" title="Fit to screen">⤢</button>
+</div>
+
+<div id="detail">
+  <button class="dclose" id="dclose">×</button>
+  <h3><span class="d-dot" id="dDot"></span><span id="dTitle"></span></h3>
+  <p class="path" id="dPath"></p>
+  <p class="desc" id="dDesc"></p>
+  <a class="open" id="dLink" href="#" target="_blank" rel="noopener noreferrer">Open overview ↗</a>
+</div>
+
+<div class="hint" id="hint">Click a node to expand · drag to pan · scroll to zoom</div>
+
+<script>
+/* ============================================================================
+   DATA — organised by the PROBLEM each domain solves, not by technology.
+   10 major domains → subfields → (sometimes) finer distinctions.
+   Every node has an overview link. desc = short "what it solves".
+   ============================================================================ */
+const DATA = {
+  name: "The IT Industry",
+  sub: "Computer Science & IT",
+  link: "https://en.wikipedia.org/wiki/Information_technology",
+  desc: "Building, operating, securing and improving computing systems. Not ten separate industries — different specialisations contributing to one technology ecosystem. The key is to understand the problem each domain solves.",
+  children: [
+    {
+      name: "1 · Software Engineering",
+      link: "https://en.wikipedia.org/wiki/Software_engineering",
+      desc: "Building the applications, platforms and software products that people and businesses use.",
+      children: [
+        {
+          name: "Frontend Development",
+          link: "https://developer.mozilla.org/en-US/docs/Learn/Front-end_web_developer",
+          desc: "Building the user interfaces people see and interact with.",
+          children: [
+            { name: "HTML", link: "https://developer.mozilla.org/en-US/docs/Web/HTML", desc: "The markup that structures web content." },
+            { name: "CSS & Styling", link: "https://developer.mozilla.org/en-US/docs/Web/CSS", desc: "Layout, colour and responsive design." },
+            { name: "JavaScript", link: "https://developer.mozilla.org/en-US/docs/Web/JavaScript", desc: "The language of browser interactivity." },
+            { name: "TypeScript", link: "https://www.typescriptlang.org/docs/", desc: "Typed superset of JavaScript." },
+            { name: "UI Frameworks", link: "https://en.wikipedia.org/wiki/Comparison_of_JavaScript-based_web_frameworks", desc: "React, Vue, Angular, Svelte." },
+            { name: "State Management", link: "https://en.wikipedia.org/wiki/State_management", desc: "Managing UI/application state." },
+            { name: "Web Accessibility", link: "https://developer.mozilla.org/en-US/docs/Web/Accessibility", desc: "Making UIs usable by everyone (a11y)." }
+          ]
+        },
+        {
+          name: "Web Development",
+          link: "https://developer.mozilla.org/en-US/docs/Learn",
+          desc: "Building websites and web apps served over the internet.",
+          children: [
+            { name: "Progressive Web Apps", link: "https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps", desc: "Web apps that behave like native ones." },
+            { name: "Server-Side Rendering", link: "https://en.wikipedia.org/wiki/Server-side_scripting", desc: "Rendering pages on the server." },
+            { name: "WebAssembly", link: "https://webassembly.org/", desc: "Near-native code in the browser." },
+            { name: "Web Performance", link: "https://developer.mozilla.org/en-US/docs/Web/Performance", desc: "Making pages fast." }
+          ]
+        },
+        {
+          name: "Backend Development",
+          link: "https://developer.mozilla.org/en-US/docs/Learn/Server-side",
+          desc: "APIs, business logic and databases behind an application.",
+          children: [
+            { name: "Server Runtimes", link: "https://nodejs.org/en/about", desc: "Node, Deno, Bun, JVM, etc." },
+            { name: "Web Frameworks", link: "https://en.wikipedia.org/wiki/Web_framework", desc: "Express, Django, Rails, Spring." },
+            { name: "REST APIs", link: "https://en.wikipedia.org/wiki/REST", desc: "Resource-based HTTP APIs." },
+            { name: "GraphQL", link: "https://en.wikipedia.org/wiki/GraphQL", desc: "Query language for APIs." },
+            { name: "Authentication & Authorization", link: "https://en.wikipedia.org/wiki/Authentication", desc: "Identity, sessions, tokens." },
+            { name: "Caching", link: "https://en.wikipedia.org/wiki/Cache_(computing)", desc: "Redis, CDN, in-memory caches." },
+            { name: "Message Queues", link: "https://en.wikipedia.org/wiki/Message_queue", desc: "Async communication between services." }
+          ]
+        },
+        {
+          name: "Full Stack Development",
+          link: "https://en.wikipedia.org/wiki/Full-stack_developer",
+          desc: "Frontend + backend combined.",
+          children: [
+            { name: "Meta-Frameworks", link: "https://en.wikipedia.org/wiki/Web_framework", desc: "Next.js, Nuxt, SvelteKit." },
+            { name: "API Integration", link: "https://en.wikipedia.org/wiki/API", desc: "Wiring front and back together." },
+            { name: "Deployment Basics", link: "https://en.wikipedia.org/wiki/Software_deployment", desc: "Shipping full apps to production." }
+          ]
+        },
+        {
+          name: "Mobile Development",
+          link: "https://en.wikipedia.org/wiki/Mobile_app_development",
+          desc: "Android and iOS applications.",
+          children: [
+            { name: "Android (Kotlin/Java)", link: "https://developer.android.com/guide", desc: "Native Android development." },
+            { name: "iOS (Swift)", link: "https://developer.apple.com/documentation/", desc: "Native Apple development." },
+            { name: "Cross-Platform", link: "https://en.wikipedia.org/wiki/Cross-platform_software", desc: "Flutter, React Native." },
+            { name: "Mobile UI Guidelines", link: "https://developer.apple.com/design/human-interface-guidelines/", desc: "Platform design conventions." }
+          ]
+        },
+        {
+          name: "Desktop Development",
+          link: "https://en.wikipedia.org/wiki/Desktop_computer",
+          desc: "Windows and macOS applications.",
+          children: [
+            { name: "Native Desktop (Win/macOS/Linux)", link: "https://en.wikipedia.org/wiki/Graphical_user_interface", desc: "Platform-native GUI apps." },
+            { name: "Electron / Web-based", link: "https://en.wikipedia.org/wiki/Electron_(software_framework)", desc: "Desktop apps built with web tech." },
+            { name: "Cross-Platform Toolkits", link: "https://en.wikipedia.org/wiki/Qt_(software)", desc: "Qt, GTK and similar." }
+          ]
+        },
+        {
+          name: "Game Development",
+          link: "https://en.wikipedia.org/wiki/Video_game_development",
+          desc: "Games and the engines that power them.",
+          children: [
+            { name: "Game Engines", link: "https://en.wikipedia.org/wiki/Game_engine", desc: "Unity, Unreal, Godot." },
+            { name: "Graphics & Rendering", link: "https://en.wikipedia.org/wiki/Computer_graphics", desc: "Drawing the game world." },
+            { name: "Game Physics", link: "https://en.wikipedia.org/wiki/Game_physics", desc: "Simulating movement and collisions." },
+            { name: "Game AI", link: "https://en.wikipedia.org/wiki/Artificial_intelligence_in_video_games", desc: "NPC behaviour and pathfinding." },
+            { name: "Game Design", link: "https://en.wikipedia.org/wiki/Game_design", desc: "Rules, mechanics and balance." }
+          ]
+        },
+        {
+          name: "Systems Programming",
+          link: "https://en.wikipedia.org/wiki/System_programming",
+          desc: "OS, compilers and low-level software — closest to hardware.",
+          children: [
+            { name: "Operating System Dev", link: "https://en.wikipedia.org/wiki/Operating_system", desc: "Kernels and OS internals." },
+            { name: "Compilers & Interpreters", link: "https://en.wikipedia.org/wiki/Compiler", desc: "Translating and running code." },
+            { name: "Memory Management", link: "https://en.wikipedia.org/wiki/Memory_management", desc: "Allocation, GC, ownership." },
+            { name: "Systems Languages", link: "https://en.wikipedia.org/wiki/System_programming_language", desc: "C, C++, Rust, Zig, Go." },
+            { name: "Concurrency", link: "https://en.wikipedia.org/wiki/Concurrency_(computer_science)", desc: "Threads, async, parallelism." }
+          ]
+        },
+        {
+          name: "Distributed Systems",
+          link: "https://en.wikipedia.org/wiki/Distributed_computing",
+          desc: "Large systems running across many machines.",
+          children: [
+            { name: "Consensus Algorithms", link: "https://en.wikipedia.org/wiki/Consensus_(computer_science)", desc: "Raft, Paxos — agreeing across nodes." },
+            { name: "Replication & Consistency", link: "https://en.wikipedia.org/wiki/Consistency_model", desc: "Keeping copies in sync." },
+            { name: "CAP Theorem", link: "https://en.wikipedia.org/wiki/CAP_theorem", desc: "Consistency vs availability trade-offs." },
+            { name: "Fault Tolerance", link: "https://en.wikipedia.org/wiki/Fault_tolerance", desc: "Surviving partial failures." },
+            { name: "Scalability Patterns", link: "https://en.wikipedia.org/wiki/Scalability", desc: "Sharding, partitioning, load spreading." }
+          ]
+        },
+        {
+          name: "Blockchain / Web3",
+          link: "https://en.wikipedia.org/wiki/Blockchain",
+          desc: "Decentralised applications and distributed ledgers.",
+          children: [
+            { name: "Smart Contracts", link: "https://en.wikipedia.org/wiki/Smart_contract", desc: "Self-executing on-chain programs." },
+            { name: "Cryptocurrencies", link: "https://en.wikipedia.org/wiki/Cryptocurrency", desc: "Digital assets on blockchains." },
+            { name: "Consensus Mechanisms", link: "https://en.wikipedia.org/wiki/Consensus_(computer_science)", desc: "Proof of work / stake." },
+            { name: "Decentralized Apps (dApps)", link: "https://en.wikipedia.org/wiki/Decentralized_application", desc: "Apps running on-chain." }
+          ]
+        },
+        {
+          name: "API & Platform Engineering",
+          link: "https://en.wikipedia.org/wiki/Platform_engineering",
+          desc: "Reusable platforms and internal tooling for other developers.",
+          children: [
+            { name: "API Design", link: "https://en.wikipedia.org/wiki/API", desc: "Contracts between services." },
+            { name: "gRPC & RPC", link: "https://en.wikipedia.org/wiki/GRPC", desc: "High-performance service calls." },
+            { name: "Developer Experience", link: "https://en.wikipedia.org/wiki/Programmer", desc: "Tooling that makes devs productive." },
+            { name: "Internal Developer Platforms", link: "https://en.wikipedia.org/wiki/Platform_engineering", desc: "Self-service infra for teams." }
+          ]
+        }
+      ]
+    },
+    {
+      name: "2 · AI & Machine Learning",
+      link: "https://en.wikipedia.org/wiki/Artificial_intelligence",
+      desc: "Developing systems that learn, predict, reason, generate and act. Reorganised around how the field actually specialises today — with foundation models and agents at the centre of gravity.",
+      children: [
+        {
+          name: "Classical Machine Learning",
+          link: "https://en.wikipedia.org/wiki/Machine_learning",
+          desc: "Learning patterns from structured data — still the backbone of most real-world ML.",
+          children: [
+            { name: "Supervised Learning", link: "https://en.wikipedia.org/wiki/Supervised_learning", desc: "Learning from labelled data." },
+            { name: "Unsupervised Learning", link: "https://en.wikipedia.org/wiki/Unsupervised_learning", desc: "Finding structure in unlabelled data." },
+            { name: "Ensemble Methods", link: "https://en.wikipedia.org/wiki/Ensemble_learning", desc: "Random forests, gradient boosting." },
+            { name: "Feature Engineering", link: "https://en.wikipedia.org/wiki/Feature_engineering", desc: "Crafting inputs for models." },
+            { name: "Model Evaluation", link: "https://en.wikipedia.org/wiki/Cross-validation_(statistics)", desc: "Validation, metrics, overfitting." }
+          ]
+        },
+        {
+          name: "Deep Learning",
+          link: "https://en.wikipedia.org/wiki/Deep_learning",
+          desc: "Neural networks — the engine under modern AI.",
+          children: [
+            { name: "Neural Networks", link: "https://en.wikipedia.org/wiki/Artificial_neural_network", desc: "The core building block." },
+            { name: "CNNs", link: "https://en.wikipedia.org/wiki/Convolutional_neural_network", desc: "Vision-oriented networks." },
+            { name: "RNNs / LSTMs", link: "https://en.wikipedia.org/wiki/Recurrent_neural_network", desc: "Sequence models." },
+            { name: "Transformers", link: "https://en.wikipedia.org/wiki/Transformer_(deep_learning_architecture)", desc: "Attention architecture behind modern AI." },
+            { name: "Training & Optimization", link: "https://en.wikipedia.org/wiki/Stochastic_gradient_descent", desc: "Backprop, gradient descent." },
+            { name: "Transfer Learning", link: "https://en.wikipedia.org/wiki/Transfer_learning", desc: "Reusing learned knowledge." }
+          ]
+        },
+        {
+          name: "Foundation Models & LLMs",
+          link: "https://en.wikipedia.org/wiki/Foundation_model",
+          desc: "Large pre-trained models adapted to many tasks — the centre of the current AI wave.",
+          children: [
+            { name: "Large Language Models", link: "https://en.wikipedia.org/wiki/Large_language_model", desc: "GPT-style text models." },
+            { name: "Fine-Tuning & Adaptation", link: "https://en.wikipedia.org/wiki/Fine-tuning_(deep_learning)", desc: "Specialising a base model (LoRA, PEFT)." },
+            { name: "Retrieval-Augmented Generation", link: "https://en.wikipedia.org/wiki/Retrieval-augmented_generation", desc: "Grounding models in external data (RAG)." },
+            { name: "Embeddings & Vector Search", link: "https://en.wikipedia.org/wiki/Word_embedding", desc: "Representing meaning as vectors." },
+            { name: "Multimodal Models", link: "https://en.wikipedia.org/wiki/Multimodal_learning", desc: "Text + image + audio in one model." },
+            { name: "Prompt Engineering", link: "https://en.wikipedia.org/wiki/Prompt_engineering", desc: "Shaping model behaviour via prompts." },
+            { name: "Evaluation & Alignment", link: "https://en.wikipedia.org/wiki/AI_alignment", desc: "Measuring and steering model behaviour." }
+          ]
+        },
+        {
+          name: "Generative AI",
+          link: "https://en.wikipedia.org/wiki/Generative_artificial_intelligence",
+          desc: "Creating new content across modalities.",
+          children: [
+            { name: "Text Generation", link: "https://en.wikipedia.org/wiki/Large_language_model", desc: "LLM-based writing." },
+            { name: "Image Generation", link: "https://en.wikipedia.org/wiki/Text-to-image_model", desc: "Text-to-image synthesis." },
+            { name: "Video Generation", link: "https://en.wikipedia.org/wiki/Text-to-video_model", desc: "Text-to-video synthesis." },
+            { name: "Audio & Music Generation", link: "https://en.wikipedia.org/wiki/Music_and_artificial_intelligence", desc: "Generating sound and music." },
+            { name: "Diffusion Models", link: "https://en.wikipedia.org/wiki/Diffusion_model", desc: "The engine behind modern image gen." },
+            { name: "VAEs", link: "https://en.wikipedia.org/wiki/Variational_autoencoder", desc: "Latent-variable generative models." },
+            { name: "GANs", link: "https://en.wikipedia.org/wiki/Generative_adversarial_network", desc: "Generator vs discriminator." }
+          ]
+        },
+        {
+          name: "Agentic AI",
+          link: "https://en.wikipedia.org/wiki/Agentic_AI",
+          desc: "Systems that plan, use tools and act autonomously toward goals — the fastest-moving applied area.",
+          children: [
+            { name: "Autonomous Agents", link: "https://en.wikipedia.org/wiki/Autonomous_agent", desc: "Goal-driven, self-directed systems." },
+            { name: "Multi-Agent Systems", link: "https://en.wikipedia.org/wiki/Multi-agent_system", desc: "Agents cooperating or competing." },
+            { name: "Tool Use & Function Calling", link: "https://en.wikipedia.org/wiki/Large_language_model#Tool_use", desc: "Letting models call external tools." },
+            { name: "Planning & Memory", link: "https://en.wikipedia.org/wiki/Automated_planning_and_scheduling", desc: "Reasoning over steps and retained context." },
+            { name: "Agent Frameworks & Orchestration", link: "https://en.wikipedia.org/wiki/Intelligent_agent", desc: "Wiring agents, tools and workflows together." }
+          ]
+        },
+        {
+          name: "Natural Language Processing",
+          link: "https://en.wikipedia.org/wiki/Natural_language_processing",
+          desc: "Understanding and processing language.",
+          children: [
+            { name: "Text Classification", link: "https://en.wikipedia.org/wiki/Document_classification", desc: "Categorising text." },
+            { name: "Sentiment Analysis", link: "https://en.wikipedia.org/wiki/Sentiment_analysis", desc: "Detecting opinion and tone." },
+            { name: "Named Entity Recognition", link: "https://en.wikipedia.org/wiki/Named-entity_recognition", desc: "Extracting people, places, things." },
+            { name: "Machine Translation", link: "https://en.wikipedia.org/wiki/Machine_translation", desc: "Translating between languages." },
+            { name: "Information Extraction", link: "https://en.wikipedia.org/wiki/Information_extraction", desc: "Turning text into structured data." }
+          ]
+        },
+        {
+          name: "Computer Vision",
+          link: "https://en.wikipedia.org/wiki/Computer_vision",
+          desc: "Understanding images and video.",
+          children: [
+            { name: "Image Classification", link: "https://en.wikipedia.org/wiki/Computer_vision#Recognition", desc: "Labelling whole images." },
+            { name: "Object Detection", link: "https://en.wikipedia.org/wiki/Object_detection", desc: "Locating objects in a scene." },
+            { name: "Image Segmentation", link: "https://en.wikipedia.org/wiki/Image_segmentation", desc: "Pixel-level understanding." },
+            { name: "Pose & Activity Recognition", link: "https://en.wikipedia.org/wiki/Activity_recognition", desc: "Understanding motion and actions." },
+            { name: "3D Vision", link: "https://en.wikipedia.org/wiki/3D_reconstruction", desc: "Reconstructing 3D from images." }
+          ]
+        },
+        {
+          name: "Speech & Audio AI",
+          link: "https://en.wikipedia.org/wiki/Speech_processing",
+          desc: "Turning speech and sound into intelligence and vice versa.",
+          children: [
+            { name: "Speech Recognition (ASR)", link: "https://en.wikipedia.org/wiki/Speech_recognition", desc: "Speech to text." },
+            { name: "Text-to-Speech (TTS)", link: "https://en.wikipedia.org/wiki/Speech_synthesis", desc: "Text to natural speech." },
+            { name: "Voice & Audio Models", link: "https://en.wikipedia.org/wiki/Speech_processing", desc: "Voice cloning, audio understanding." }
+          ]
+        },
+        {
+          name: "Recommender Systems",
+          link: "https://en.wikipedia.org/wiki/Recommender_system",
+          desc: "Predicting what a user wants — one of ML's biggest commercial applications.",
+          children: [
+            { name: "Collaborative Filtering", link: "https://en.wikipedia.org/wiki/Collaborative_filtering", desc: "Recommending from similar users." },
+            { name: "Content-Based Filtering", link: "https://en.wikipedia.org/wiki/Recommender_system#Content-based_filtering", desc: "Recommending similar items." },
+            { name: "Ranking & Personalization", link: "https://en.wikipedia.org/wiki/Learning_to_rank", desc: "Ordering results for each user." }
+          ]
+        },
+        {
+          name: "Time-Series & Forecasting",
+          link: "https://en.wikipedia.org/wiki/Time_series",
+          desc: "Modelling data over time — demand, finance, sensors, operations.",
+          children: [
+            { name: "Forecasting", link: "https://en.wikipedia.org/wiki/Forecasting", desc: "Predicting future values." },
+            { name: "Anomaly Detection", link: "https://en.wikipedia.org/wiki/Anomaly_detection", desc: "Spotting the unusual." }
+          ]
+        },
+        {
+          name: "Reinforcement Learning",
+          link: "https://en.wikipedia.org/wiki/Reinforcement_learning",
+          desc: "Learning through rewards and actions.",
+          children: [
+            { name: "Q-Learning", link: "https://en.wikipedia.org/wiki/Q-learning", desc: "Value-based RL." },
+            { name: "Policy Gradient Methods", link: "https://en.wikipedia.org/wiki/Reinforcement_learning#Direct_policy_search", desc: "Optimising the policy directly." },
+            { name: "RL from Human Feedback", link: "https://en.wikipedia.org/wiki/Reinforcement_learning_from_human_feedback", desc: "Aligning models with preferences." }
+          ]
+        },
+        {
+          name: "Robotics & Embodied AI",
+          link: "https://en.wikipedia.org/wiki/Robotics",
+          desc: "Intelligence that acts in the physical world.",
+          children: [
+            { name: "Motion Planning", link: "https://en.wikipedia.org/wiki/Motion_planning", desc: "Deciding how a robot moves." },
+            { name: "SLAM", link: "https://en.wikipedia.org/wiki/Simultaneous_localization_and_mapping", desc: "Mapping while locating itself." },
+            { name: "Control Systems", link: "https://en.wikipedia.org/wiki/Control_system", desc: "Feedback control of actuators." }
+          ]
+        },
+        {
+          name: "MLOps & AI Infrastructure",
+          link: "https://en.wikipedia.org/wiki/MLOps",
+          desc: "Deploying, serving and operating models in production — the engineering behind AI at scale.",
+          children: [
+            { name: "Model Deployment & Serving", link: "https://en.wikipedia.org/wiki/Machine_learning#Model_deployments", desc: "Getting models into production." },
+            { name: "LLMOps", link: "https://en.wikipedia.org/wiki/MLOps", desc: "Operating LLM apps (prompts, evals, cost)." },
+            { name: "Experiment Tracking", link: "https://en.wikipedia.org/wiki/MLOps", desc: "Versioning runs and metrics." },
+            { name: "Feature Stores", link: "https://en.wikipedia.org/wiki/MLOps", desc: "Reusable, consistent features." },
+            { name: "Vector Databases", link: "https://en.wikipedia.org/wiki/Vector_database", desc: "Storage for embeddings and retrieval." }
+          ]
+        },
+        {
+          name: "Responsible AI",
+          link: "https://en.wikipedia.org/wiki/Ethics_of_artificial_intelligence",
+          desc: "Making AI fair, transparent, safe and compliant — an increasingly required discipline.",
+          children: [
+            { name: "Fairness & Bias", link: "https://en.wikipedia.org/wiki/Fairness_(machine_learning)", desc: "Reducing discriminatory outcomes." },
+            { name: "Explainability (XAI)", link: "https://en.wikipedia.org/wiki/Explainable_artificial_intelligence", desc: "Understanding why a model decided." },
+            { name: "AI Safety & Alignment", link: "https://en.wikipedia.org/wiki/AI_alignment", desc: "Keeping AI beneficial and controllable." },
+            { name: "AI Governance & Regulation", link: "https://en.wikipedia.org/wiki/Regulation_of_artificial_intelligence", desc: "Law, policy and compliance." }
+          ]
+        },
+        {
+          name: "AI Career Tracks",
+          link: "https://en.wikipedia.org/wiki/Artificial_intelligence_engineering",
+          desc: "The distinct jobs in AI — building an app on an API and training a foundation model are very different roles.",
+          children: [
+            { name: "AI Research", link: "https://en.wikipedia.org/wiki/Artificial_intelligence#Research", desc: "Developing new algorithms and models." },
+            { name: "Applied AI / ML", link: "https://en.wikipedia.org/wiki/Applied_science", desc: "Applying existing models to problems." },
+            { name: "ML Engineering", link: "https://en.wikipedia.org/wiki/Data_science", desc: "Model development, training, productionisation." },
+            { name: "AI Engineering", link: "https://en.wikipedia.org/wiki/Retrieval-augmented_generation", desc: "Production apps around AI (RAG, agents, APIs)." },
+            { name: "AI Infrastructure", link: "https://en.wikipedia.org/wiki/MLOps", desc: "Systems to train and serve models at scale." }
+          ]
+        }
+      ]
+    },
+    {
+      name: "3 · Data & Analytics",
+      link: "https://en.wikipedia.org/wiki/Data_science",
+      desc: "Collecting, processing, managing and extracting useful information from data.",
+      children: [
+        {
+          name: "Data Analytics",
+          link: "https://en.wikipedia.org/wiki/Analytics",
+          desc: "Understanding historical data.",
+          children: [
+            { name: "Descriptive Analytics", link: "https://en.wikipedia.org/wiki/Descriptive_statistics", desc: "What happened?" },
+            { name: "Exploratory Data Analysis", link: "https://en.wikipedia.org/wiki/Exploratory_data_analysis", desc: "Finding patterns and anomalies." },
+            { name: "Data Visualization", link: "https://en.wikipedia.org/wiki/Data_and_information_visualization", desc: "Charts and dashboards." },
+            { name: "A/B Testing", link: "https://en.wikipedia.org/wiki/A/B_testing", desc: "Comparing variants experimentally." }
+          ]
+        },
+        {
+          name: "Business Intelligence",
+          link: "https://en.wikipedia.org/wiki/Business_intelligence",
+          desc: "Business reporting and dashboards.",
+          children: [
+            { name: "BI Tools", link: "https://en.wikipedia.org/wiki/Business_intelligence_software", desc: "Tableau, Power BI, Looker." },
+            { name: "OLAP & Cubes", link: "https://en.wikipedia.org/wiki/Online_analytical_processing", desc: "Multidimensional analysis." },
+            { name: "KPIs & Metrics", link: "https://en.wikipedia.org/wiki/Performance_indicator", desc: "Measuring the business." }
+          ]
+        },
+        {
+          name: "Data Science",
+          link: "https://en.wikipedia.org/wiki/Data_science",
+          desc: "Statistical analysis and predictive modelling.",
+          children: [
+            { name: "Statistics", link: "https://en.wikipedia.org/wiki/Statistics", desc: "The mathematical foundation." },
+            { name: "Predictive Modelling", link: "https://en.wikipedia.org/wiki/Predictive_modelling", desc: "Forecasting outcomes." },
+            { name: "Experimentation", link: "https://en.wikipedia.org/wiki/Design_of_experiments", desc: "Designing valid experiments." },
+            { name: "Feature Analysis", link: "https://en.wikipedia.org/wiki/Feature_selection", desc: "Which signals matter." }
+          ]
+        },
+        {
+          name: "Data Engineering",
+          link: "https://en.wikipedia.org/wiki/Data_engineering",
+          desc: "Building pipelines that collect and process data.",
+          children: [
+            { name: "ETL / ELT Pipelines", link: "https://en.wikipedia.org/wiki/Extract,_transform,_load", desc: "Moving and reshaping data." },
+            { name: "Data Orchestration", link: "https://en.wikipedia.org/wiki/Apache_Airflow", desc: "Scheduling pipelines (Airflow)." },
+            { name: "Batch Processing", link: "https://en.wikipedia.org/wiki/Apache_Spark", desc: "Spark, Hadoop." },
+            { name: "Stream Processing", link: "https://en.wikipedia.org/wiki/Stream_processing", desc: "Kafka, Flink — real-time data." }
+          ]
+        },
+        {
+          name: "Analytics Engineering",
+          link: "https://en.wikipedia.org/wiki/Data_build_tool",
+          desc: "Bridging data engineering and analysis — clean, tested data models (dbt).",
+          children: [
+            { name: "Data Transformation", link: "https://en.wikipedia.org/wiki/Data_transformation_(computing)", desc: "Turning raw data into usable models." },
+            { name: "Data Modelling", link: "https://en.wikipedia.org/wiki/Data_modeling", desc: "Structuring analytical data." },
+            { name: "Metrics Layer", link: "https://en.wikipedia.org/wiki/Semantic_layer", desc: "Consistent, governed metric definitions." }
+          ]
+        },
+        {
+          name: "Big Data Engineering",
+          link: "https://en.wikipedia.org/wiki/Big_data",
+          desc: "Processing massive datasets.",
+          children: [
+            { name: "Distributed Storage", link: "https://en.wikipedia.org/wiki/Apache_Hadoop", desc: "HDFS and object stores." },
+            { name: "Data Lakes & Lakehouses", link: "https://en.wikipedia.org/wiki/Data_lake", desc: "Raw-to-curated large-scale storage." },
+            { name: "MapReduce", link: "https://en.wikipedia.org/wiki/MapReduce", desc: "The classic big-data compute model." }
+          ]
+        },
+        {
+          name: "Data Architecture",
+          link: "https://en.wikipedia.org/wiki/Data_architecture",
+          desc: "Designing the overall data ecosystem.",
+          children: [
+            { name: "Data Warehousing", link: "https://en.wikipedia.org/wiki/Data_warehouse", desc: "Central analytical store." },
+            { name: "Data Mesh", link: "https://en.wikipedia.org/wiki/Data_mesh", desc: "Decentralised data ownership." },
+            { name: "Dimensional Modelling", link: "https://en.wikipedia.org/wiki/Dimensional_modeling", desc: "Star/snowflake schemas." }
+          ]
+        },
+        {
+          name: "Database Engineering",
+          link: "https://en.wikipedia.org/wiki/Database_engine",
+          desc: "Designing and optimising databases.",
+          children: [
+            { name: "Relational (SQL)", link: "https://en.wikipedia.org/wiki/Relational_database", desc: "Tables, joins, SQL." },
+            { name: "NoSQL", link: "https://en.wikipedia.org/wiki/NoSQL", desc: "Document, key-value, column, graph." },
+            { name: "Indexing & Query Optimization", link: "https://en.wikipedia.org/wiki/Database_index", desc: "Making queries fast." },
+            { name: "Transactions & ACID", link: "https://en.wikipedia.org/wiki/ACID", desc: "Reliable multi-step operations." },
+            { name: "Vector Databases", link: "https://en.wikipedia.org/wiki/Vector_database", desc: "Similarity search for AI." }
+          ]
+        },
+        {
+          name: "Data Governance",
+          link: "https://en.wikipedia.org/wiki/Data_governance",
+          desc: "Data quality, access and compliance.",
+          children: [
+            { name: "Data Quality", link: "https://en.wikipedia.org/wiki/Data_quality", desc: "Accuracy and completeness." },
+            { name: "Data Privacy", link: "https://en.wikipedia.org/wiki/Information_privacy", desc: "GDPR, consent, PII." },
+            { name: "Master Data Management", link: "https://en.wikipedia.org/wiki/Master_data_management", desc: "Single source of truth." }
+          ]
+        }
+      ]
+    },
+    {
+      name: "4 · Cloud & Infrastructure",
+      link: "https://en.wikipedia.org/wiki/Cloud_computing",
+      desc: "Providing and running the computing infrastructure modern software operates on.",
+      children: [
+        {
+          name: "Cloud Engineering",
+          link: "https://en.wikipedia.org/wiki/Cloud_computing",
+          desc: "AWS / Azure / GCP infrastructure.",
+          children: [
+            { name: "Service Models (IaaS/PaaS/SaaS)", link: "https://en.wikipedia.org/wiki/Cloud_computing#Service_models", desc: "Layers of cloud abstraction." },
+            { name: "Serverless / FaaS", link: "https://en.wikipedia.org/wiki/Serverless_computing", desc: "Run code without managing servers." },
+            { name: "Multi-Cloud & Hybrid", link: "https://en.wikipedia.org/wiki/Multicloud", desc: "Spanning providers." },
+            { name: "Cloud-Native Design", link: "https://en.wikipedia.org/wiki/Cloud_native_computing", desc: "Building for the cloud from day one." }
+          ]
+        },
+        {
+          name: "DevOps Engineering",
+          link: "https://aws.amazon.com/devops/what-is-devops/",
+          desc: "Automating development and operations.",
+          children: [
+            { name: "Infrastructure as Code", link: "https://en.wikipedia.org/wiki/Infrastructure_as_code", desc: "Terraform, CloudFormation." },
+            { name: "Configuration Management", link: "https://en.wikipedia.org/wiki/Configuration_management", desc: "Ansible, Puppet, Chef." },
+            { name: "GitOps", link: "https://en.wikipedia.org/wiki/DevOps", desc: "Git as the source of truth for ops." }
+          ]
+        },
+        {
+          name: "CI/CD",
+          link: "https://en.wikipedia.org/wiki/CI/CD",
+          desc: "Automated build, test and deploy pipelines.",
+          children: [
+            { name: "Continuous Integration", link: "https://en.wikipedia.org/wiki/Continuous_integration", desc: "Merge and test frequently." },
+            { name: "Continuous Delivery", link: "https://en.wikipedia.org/wiki/Continuous_delivery", desc: "Always deployable." },
+            { name: "Deployment Strategies", link: "https://en.wikipedia.org/wiki/Deployment_environment", desc: "Blue-green, canary, rolling." }
+          ]
+        },
+        {
+          name: "Observability",
+          link: "https://en.wikipedia.org/wiki/Observability_(software)",
+          desc: "Understanding what running systems are doing.",
+          children: [
+            { name: "Monitoring & Metrics", link: "https://en.wikipedia.org/wiki/Application_performance_management", desc: "Prometheus, Grafana." },
+            { name: "Logging", link: "https://en.wikipedia.org/wiki/Log_management", desc: "Centralised log analysis." },
+            { name: "Distributed Tracing", link: "https://en.wikipedia.org/wiki/Tracing_(software)", desc: "Following requests across services." }
+          ]
+        },
+        {
+          name: "Site Reliability Engineering",
+          link: "https://en.wikipedia.org/wiki/Site_reliability_engineering",
+          desc: "Applying software engineering to reliability.",
+          children: [
+            { name: "SLIs / SLOs / SLAs", link: "https://en.wikipedia.org/wiki/Service-level_objective", desc: "Defining and measuring reliability." },
+            { name: "Incident Management", link: "https://en.wikipedia.org/wiki/Incident_management", desc: "Responding to outages." },
+            { name: "Chaos Engineering", link: "https://en.wikipedia.org/wiki/Chaos_engineering", desc: "Breaking things on purpose to build resilience." }
+          ]
+        },
+        {
+          name: "Platform Engineering",
+          link: "https://en.wikipedia.org/wiki/Platform_engineering",
+          desc: "Internal developer platforms.",
+          children: [
+            { name: "Internal Developer Platforms", link: "https://en.wikipedia.org/wiki/Platform_engineering", desc: "Self-service infra for teams." },
+            { name: "Golden Paths", link: "https://en.wikipedia.org/wiki/Platform_engineering", desc: "Paved, supported ways to build." }
+          ]
+        },
+        {
+          name: "Kubernetes Engineering",
+          link: "https://kubernetes.io/docs/concepts/overview/",
+          desc: "Container orchestration.",
+          children: [
+            { name: "Containers", link: "https://en.wikipedia.org/wiki/Docker_(software)", desc: "Docker and OCI images." },
+            { name: "Orchestration", link: "https://en.wikipedia.org/wiki/Container_orchestration", desc: "Scheduling containers at scale." },
+            { name: "Service Mesh", link: "https://en.wikipedia.org/wiki/Service_mesh", desc: "Traffic, security between services." },
+            { name: "Helm & Operators", link: "https://en.wikipedia.org/wiki/Kubernetes", desc: "Packaging and automating workloads." }
+          ]
+        },
+        {
+          name: "Infrastructure Engineering",
+          link: "https://en.wikipedia.org/wiki/IT_infrastructure",
+          desc: "Servers, networking and storage.",
+          children: [
+            { name: "Compute", link: "https://en.wikipedia.org/wiki/Server_(computing)", desc: "Physical and virtual servers." },
+            { name: "Storage", link: "https://en.wikipedia.org/wiki/Computer_data_storage", desc: "Block, file, object storage." },
+            { name: "Virtualization", link: "https://en.wikipedia.org/wiki/Virtualization", desc: "Hypervisors and VMs." }
+          ]
+        },
+        {
+          name: "MLOps",
+          link: "https://en.wikipedia.org/wiki/MLOps",
+          desc: "ML deployment and lifecycle management.",
+          children: [
+            { name: "Model Deployment", link: "https://en.wikipedia.org/wiki/MLOps", desc: "Serving models in production." },
+            { name: "Experiment Tracking", link: "https://en.wikipedia.org/wiki/MLOps", desc: "Versioning runs and metrics." },
+            { name: "Feature Stores", link: "https://en.wikipedia.org/wiki/MLOps", desc: "Reusable, consistent features." }
+          ]
+        },
+        {
+          name: "FinOps",
+          link: "https://www.finops.org/introduction/what-is-finops/",
+          desc: "Cloud cost optimisation.",
+          children: [
+            { name: "Cost Visibility", link: "https://www.finops.org/introduction/what-is-finops/", desc: "Seeing and allocating spend." },
+            { name: "Cost Optimization", link: "https://www.finops.org/introduction/what-is-finops/", desc: "Reducing waste." }
+          ]
+        }
+      ]
+    },
+    {
+      name: "5 · Cybersecurity",
+      link: "https://en.wikipedia.org/wiki/Computer_security",
+      desc: "Protecting applications, infrastructure, networks and information from attack.",
+      children: [
+        {
+          name: "Application Security",
+          link: "https://en.wikipedia.org/wiki/Application_security",
+          desc: "Securing software.",
+          children: [
+            { name: "OWASP Top 10", link: "https://en.wikipedia.org/wiki/OWASP", desc: "Most common web vulnerabilities." },
+            { name: "Secure Coding", link: "https://en.wikipedia.org/wiki/Secure_coding", desc: "Writing resistant code." },
+            { name: "SAST / DAST", link: "https://en.wikipedia.org/wiki/Static_application_security_testing", desc: "Automated code/app scanning." }
+          ]
+        },
+        {
+          name: "Network Security",
+          link: "https://en.wikipedia.org/wiki/Network_security",
+          desc: "Protecting networks.",
+          children: [
+            { name: "Firewalls", link: "https://en.wikipedia.org/wiki/Firewall_(computing)", desc: "Filtering network traffic." },
+            { name: "IDS / IPS", link: "https://en.wikipedia.org/wiki/Intrusion_detection_system", desc: "Detecting and blocking intrusions." },
+            { name: "VPNs", link: "https://en.wikipedia.org/wiki/Virtual_private_network", desc: "Encrypted tunnels." }
+          ]
+        },
+        {
+          name: "Cloud Security",
+          link: "https://en.wikipedia.org/wiki/Cloud_computing_security",
+          desc: "Securing cloud environments.",
+          children: [
+            { name: "Cloud IAM", link: "https://en.wikipedia.org/wiki/Identity_management", desc: "Permissions in the cloud." },
+            { name: "Container Security", link: "https://en.wikipedia.org/wiki/Docker_(software)", desc: "Securing images and runtimes." },
+            { name: "Zero Trust", link: "https://en.wikipedia.org/wiki/Zero_trust_security_model", desc: "Never trust, always verify." }
+          ]
+        },
+        {
+          name: "Penetration Testing",
+          link: "https://en.wikipedia.org/wiki/Penetration_test",
+          desc: "Finding vulnerabilities through authorised attacks.",
+          children: [
+            { name: "Vulnerability Assessment", link: "https://en.wikipedia.org/wiki/Vulnerability_assessment", desc: "Scanning for weaknesses." },
+            { name: "Exploit Development", link: "https://en.wikipedia.org/wiki/Exploit_(computer_security)", desc: "Weaponising vulnerabilities." },
+            { name: "Red Teaming", link: "https://en.wikipedia.org/wiki/Red_team", desc: "Simulated adversary campaigns." }
+          ]
+        },
+        {
+          name: "Ethical Hacking",
+          link: "https://en.wikipedia.org/wiki/White_hat_(computer_security)",
+          desc: "Security testing from an attacker's mindset.",
+          children: [
+            { name: "Bug Bounties", link: "https://en.wikipedia.org/wiki/Bug_bounty_program", desc: "Rewarded responsible disclosure." },
+            { name: "Social Engineering", link: "https://en.wikipedia.org/wiki/Social_engineering_(security)", desc: "Attacking the human layer." }
+          ]
+        },
+        {
+          name: "Security Operations (SOC)",
+          link: "https://en.wikipedia.org/wiki/Security_operations_center",
+          desc: "Monitoring and responding to threats.",
+          children: [
+            { name: "SIEM", link: "https://en.wikipedia.org/wiki/Security_information_and_event_management", desc: "Aggregated security telemetry." },
+            { name: "Incident Response", link: "https://en.wikipedia.org/wiki/Incident_management", desc: "Containing and recovering from attacks." },
+            { name: "Threat Intelligence", link: "https://en.wikipedia.org/wiki/Cyber_threat_intelligence", desc: "Knowing the adversary." }
+          ]
+        },
+        {
+          name: "Digital Forensics",
+          link: "https://en.wikipedia.org/wiki/Digital_forensics",
+          desc: "Investigating cyber incidents.",
+          children: [
+            { name: "Memory Forensics", link: "https://en.wikipedia.org/wiki/Memory_forensics", desc: "Analysing RAM." },
+            { name: "Malware Analysis", link: "https://en.wikipedia.org/wiki/Malware_analysis", desc: "Reverse-engineering malicious code." }
+          ]
+        },
+        {
+          name: "Cryptography",
+          link: "https://en.wikipedia.org/wiki/Cryptography",
+          desc: "Secure communication and encryption.",
+          children: [
+            { name: "Symmetric Encryption", link: "https://en.wikipedia.org/wiki/Symmetric-key_algorithm", desc: "Shared-key ciphers (AES)." },
+            { name: "Public-Key Cryptography", link: "https://en.wikipedia.org/wiki/Public-key_cryptography", desc: "RSA, elliptic curve." },
+            { name: "Hashing", link: "https://en.wikipedia.org/wiki/Cryptographic_hash_function", desc: "One-way digests." },
+            { name: "Digital Signatures", link: "https://en.wikipedia.org/wiki/Digital_signature", desc: "Proving authenticity." }
+          ]
+        },
+        {
+          name: "Identity & Access Management",
+          link: "https://en.wikipedia.org/wiki/Identity_management",
+          desc: "Controlling who can access what.",
+          children: [
+            { name: "Authentication", link: "https://en.wikipedia.org/wiki/Authentication", desc: "Proving who you are." },
+            { name: "Authorization", link: "https://en.wikipedia.org/wiki/Authorization", desc: "What you're allowed to do." },
+            { name: "SSO & Federation", link: "https://en.wikipedia.org/wiki/Single_sign-on", desc: "One identity across systems." },
+            { name: "MFA", link: "https://en.wikipedia.org/wiki/Multi-factor_authentication", desc: "Multiple proof factors." }
+          ]
+        }
+      ]
+    },
+    {
+      name: "6 · Hardware & Embedded",
+      link: "https://en.wikipedia.org/wiki/Embedded_system",
+      desc: "Computing beyond pure software — systems that interact directly with physical devices.",
+      children: [
+        {
+          name: "Embedded Software",
+          link: "https://en.wikipedia.org/wiki/Embedded_software",
+          desc: "Software running on devices.",
+          children: [
+            { name: "Real-Time Operating Systems", link: "https://en.wikipedia.org/wiki/Real-time_operating_system", desc: "Deterministic timing (RTOS)." },
+            { name: "Bare-Metal Programming", link: "https://en.wikipedia.org/wiki/Bare_machine", desc: "No OS, direct to hardware." },
+            { name: "Microcontrollers", link: "https://en.wikipedia.org/wiki/Microcontroller", desc: "Tiny on-device computers." }
+          ]
+        },
+        {
+          name: "Firmware Engineering",
+          link: "https://en.wikipedia.org/wiki/Firmware",
+          desc: "Low-level device software.",
+          children: [
+            { name: "Device Drivers", link: "https://en.wikipedia.org/wiki/Device_driver", desc: "Software that talks to hardware." },
+            { name: "Bootloaders", link: "https://en.wikipedia.org/wiki/Bootloader", desc: "Code that starts the system." }
+          ]
+        },
+        {
+          name: "Hardware Design",
+          link: "https://en.wikipedia.org/wiki/Electronic_design_automation",
+          desc: "Designing electronic circuits.",
+          children: [
+            { name: "Digital Logic", link: "https://en.wikipedia.org/wiki/Digital_electronics", desc: "Gates and combinational logic." },
+            { name: "PCB Design", link: "https://en.wikipedia.org/wiki/Printed_circuit_board", desc: "Laying out physical boards." }
+          ]
+        },
+        {
+          name: "VLSI / Chip Design",
+          link: "https://en.wikipedia.org/wiki/Very-large-scale_integration",
+          desc: "Designing semiconductor chips.",
+          children: [
+            { name: "Hardware Description Languages", link: "https://en.wikipedia.org/wiki/Hardware_description_language", desc: "Verilog, VHDL." },
+            { name: "ASIC Design", link: "https://en.wikipedia.org/wiki/Application-specific_integrated_circuit", desc: "Custom chips." },
+            { name: "Semiconductor Fabrication", link: "https://en.wikipedia.org/wiki/Semiconductor_device_fabrication", desc: "Manufacturing chips." }
+          ]
+        },
+        {
+          name: "FPGA Engineering",
+          link: "https://en.wikipedia.org/wiki/Field-programmable_gate_array",
+          desc: "Programmable hardware.",
+          children: [
+            { name: "Reconfigurable Computing", link: "https://en.wikipedia.org/wiki/Reconfigurable_computing", desc: "Hardware you can reprogram." },
+            { name: "Hardware Acceleration", link: "https://en.wikipedia.org/wiki/Hardware_acceleration", desc: "Offloading compute to silicon." }
+          ]
+        },
+        {
+          name: "IoT Engineering",
+          link: "https://en.wikipedia.org/wiki/Internet_of_things",
+          desc: "Connected physical devices.",
+          children: [
+            { name: "Sensors & Actuators", link: "https://en.wikipedia.org/wiki/Sensor", desc: "Sensing and acting on the world." },
+            { name: "IoT Protocols (MQTT)", link: "https://en.wikipedia.org/wiki/MQTT", desc: "Lightweight device messaging." },
+            { name: "IoT Security", link: "https://en.wikipedia.org/wiki/Internet_of_things#Security", desc: "Protecting fleets of devices." }
+          ]
+        },
+        {
+          name: "Robotics Engineering",
+          link: "https://en.wikipedia.org/wiki/Robotics",
+          desc: "Intelligent robotic systems.",
+          children: [
+            { name: "Actuators & Kinematics", link: "https://en.wikipedia.org/wiki/Robot_kinematics", desc: "How robots move." },
+            { name: "Robot Operating System", link: "https://en.wikipedia.org/wiki/Robot_Operating_System", desc: "Middleware for robots (ROS)." }
+          ]
+        },
+        {
+          name: "Edge Computing",
+          link: "https://en.wikipedia.org/wiki/Edge_computing",
+          desc: "Processing data near its source.",
+          children: [
+            { name: "Edge AI", link: "https://en.wikipedia.org/wiki/Edge_computing", desc: "Running models on-device." },
+            { name: "Fog Computing", link: "https://en.wikipedia.org/wiki/Fog_computing", desc: "Compute between edge and cloud." }
+          ]
+        },
+        {
+          name: "AR / VR / XR",
+          link: "https://en.wikipedia.org/wiki/Extended_reality",
+          desc: "Immersive computing on headsets and devices.",
+          children: [
+            { name: "Virtual Reality", link: "https://en.wikipedia.org/wiki/Virtual_reality", desc: "Fully simulated environments." },
+            { name: "Augmented Reality", link: "https://en.wikipedia.org/wiki/Augmented_reality", desc: "Digital overlays on the real world." },
+            { name: "Spatial Computing", link: "https://en.wikipedia.org/wiki/Spatial_computing", desc: "3D, gaze and gesture interfaces." }
+          ]
+        }
+      ]
+    },
+    {
+      name: "7 · Networking & Telecom",
+      link: "https://en.wikipedia.org/wiki/Computer_network",
+      desc: "Enabling communication between devices, networks and computing systems.",
+      children: [
+        {
+          name: "Network Engineering",
+          link: "https://en.wikipedia.org/wiki/Network_engineering",
+          desc: "Designing and maintaining networks.",
+          children: [
+            { name: "OSI Model", link: "https://en.wikipedia.org/wiki/OSI_model", desc: "The 7-layer reference model." },
+            { name: "TCP/IP", link: "https://en.wikipedia.org/wiki/Internet_protocol_suite", desc: "The internet's protocol stack." },
+            { name: "Routing & Switching", link: "https://en.wikipedia.org/wiki/Routing", desc: "Moving packets across networks." },
+            { name: "DNS", link: "https://en.wikipedia.org/wiki/Domain_Name_System", desc: "Names to addresses." }
+          ]
+        },
+        {
+          name: "Network Architecture",
+          link: "https://en.wikipedia.org/wiki/Network_architecture",
+          desc: "Large-scale network design.",
+          children: [
+            { name: "Data Center Networks", link: "https://en.wikipedia.org/wiki/Data_center", desc: "High-density internal networks." },
+            { name: "CDN & Load Balancing", link: "https://en.wikipedia.org/wiki/Content_delivery_network", desc: "Distributing and balancing traffic." }
+          ]
+        },
+        {
+          name: "Wireless Communications",
+          link: "https://en.wikipedia.org/wiki/Wireless",
+          desc: "Wi-Fi and cellular technologies.",
+          children: [
+            { name: "Wi-Fi", link: "https://en.wikipedia.org/wiki/Wi-Fi", desc: "Local wireless networking." },
+            { name: "Bluetooth", link: "https://en.wikipedia.org/wiki/Bluetooth", desc: "Short-range device links." },
+            { name: "Cellular Networks", link: "https://en.wikipedia.org/wiki/Cellular_network", desc: "Mobile radio networks." }
+          ]
+        },
+        {
+          name: "Telecom Software",
+          link: "https://en.wikipedia.org/wiki/Telecommunications_software",
+          desc: "Software for telecom systems.",
+          children: [
+            { name: "VoIP", link: "https://en.wikipedia.org/wiki/Voice_over_IP", desc: "Voice over the internet." },
+            { name: "OSS / BSS", link: "https://en.wikipedia.org/wiki/Operations_support_system", desc: "Operator support systems." }
+          ]
+        },
+        {
+          name: "4G / 5G / 6G Engineering",
+          link: "https://en.wikipedia.org/wiki/5G",
+          desc: "Mobile communication systems.",
+          children: [
+            { name: "Radio Access Network", link: "https://en.wikipedia.org/wiki/Radio_access_network", desc: "The air-interface side (RAN)." },
+            { name: "Core Network", link: "https://en.wikipedia.org/wiki/Cellular_network", desc: "The mobile backbone." },
+            { name: "Network Slicing", link: "https://en.wikipedia.org/wiki/Network_slicing", desc: "Virtual networks on shared infra." }
+          ]
+        },
+        {
+          name: "Network Automation",
+          link: "https://en.wikipedia.org/wiki/Network_management",
+          desc: "Automating network operations.",
+          children: [
+            { name: "Network Programmability", link: "https://en.wikipedia.org/wiki/Software-defined_networking", desc: "APIs to control networks." },
+            { name: "Intent-Based Networking", link: "https://en.wikipedia.org/wiki/Intent-Based_Networking", desc: "Declaring desired network state." }
+          ]
+        },
+        {
+          name: "SDN / NFV",
+          link: "https://en.wikipedia.org/wiki/Software-defined_networking",
+          desc: "Software-defined networking and virtualisation.",
+          children: [
+            { name: "SDN Controllers", link: "https://en.wikipedia.org/wiki/Software-defined_networking", desc: "Centralised network control." },
+            { name: "Network Function Virtualization", link: "https://en.wikipedia.org/wiki/Network_function_virtualization", desc: "Network appliances as software." }
+          ]
+        }
+      ]
+    },
+    {
+      name: "8 · Quality Engineering",
+      link: "https://en.wikipedia.org/wiki/Software_testing",
+      desc: "Ensuring software behaves correctly, reliably and efficiently.",
+      children: [
+        {
+          name: "Manual Testing",
+          link: "https://en.wikipedia.org/wiki/Manual_testing",
+          desc: "Testing software by hand.",
+          children: [
+            { name: "Exploratory Testing", link: "https://en.wikipedia.org/wiki/Exploratory_testing", desc: "Unscripted, investigative testing." },
+            { name: "Usability Testing", link: "https://en.wikipedia.org/wiki/Usability_testing", desc: "Watching real users." }
+          ]
+        },
+        {
+          name: "Automation Testing",
+          link: "https://en.wikipedia.org/wiki/Test_automation",
+          desc: "Automated test execution.",
+          children: [
+            { name: "Unit Testing", link: "https://en.wikipedia.org/wiki/Unit_testing", desc: "Testing small pieces in isolation." },
+            { name: "Integration Testing", link: "https://en.wikipedia.org/wiki/Integration_testing", desc: "Testing components together." },
+            { name: "End-to-End Testing", link: "https://en.wikipedia.org/wiki/System_testing", desc: "Testing whole user flows." },
+            { name: "Test-Driven Development", link: "https://en.wikipedia.org/wiki/Test-driven_development", desc: "Tests first, then code." }
+          ]
+        },
+        {
+          name: "Performance Testing",
+          link: "https://en.wikipedia.org/wiki/Software_performance_testing",
+          desc: "Speed, scalability and load.",
+          children: [
+            { name: "Load Testing", link: "https://en.wikipedia.org/wiki/Load_testing", desc: "Behaviour under expected load." },
+            { name: "Stress Testing", link: "https://en.wikipedia.org/wiki/Stress_testing_(software)", desc: "Behaviour past the breaking point." }
+          ]
+        },
+        {
+          name: "Security Testing",
+          link: "https://en.wikipedia.org/wiki/Security_testing",
+          desc: "Finding security weaknesses.",
+          children: [
+            { name: "Fuzzing", link: "https://en.wikipedia.org/wiki/Fuzzing", desc: "Random inputs to find bugs." },
+            { name: "Vulnerability Scanning", link: "https://en.wikipedia.org/wiki/Vulnerability_scanner", desc: "Automated weakness detection." }
+          ]
+        },
+        {
+          name: "API Testing",
+          link: "https://en.wikipedia.org/wiki/API_testing",
+          desc: "Testing backend interfaces.",
+          children: [
+            { name: "Contract Testing", link: "https://en.wikipedia.org/wiki/API_testing", desc: "Verifying service contracts." },
+            { name: "Mocking & Stubbing", link: "https://en.wikipedia.org/wiki/Mock_object", desc: "Faking dependencies in tests." }
+          ]
+        },
+        {
+          name: "Test Infrastructure",
+          link: "https://en.wikipedia.org/wiki/Test_automation",
+          desc: "Building testing frameworks and harnesses.",
+          children: [
+            { name: "Test Frameworks", link: "https://en.wikipedia.org/wiki/Test_automation", desc: "Reusable test tooling." },
+            { name: "CI Test Pipelines", link: "https://en.wikipedia.org/wiki/Continuous_integration", desc: "Tests on every commit." }
+          ]
+        }
+      ]
+    },
+    {
+      name: "9 · Enterprise IT",
+      link: "https://en.wikipedia.org/wiki/Information_technology_management",
+      desc: "Building and maintaining the technology systems that support large organisations.",
+      children: [
+        {
+          name: "ERP Systems",
+          link: "https://en.wikipedia.org/wiki/Enterprise_resource_planning",
+          desc: "Enterprise resource planning.",
+          children: [
+            { name: "SAP ERP", link: "https://en.wikipedia.org/wiki/SAP", desc: "Market-leading ERP suite." },
+            { name: "Oracle ERP", link: "https://en.wikipedia.org/wiki/Oracle_Applications", desc: "Oracle's enterprise suite." }
+          ]
+        },
+        {
+          name: "CRM Systems",
+          link: "https://en.wikipedia.org/wiki/Customer_relationship_management",
+          desc: "Customer relationship management.",
+          children: [
+            { name: "Salesforce", link: "https://en.wikipedia.org/wiki/Salesforce", desc: "Leading cloud CRM." },
+            { name: "Marketing Automation", link: "https://en.wikipedia.org/wiki/Marketing_automation", desc: "Automated customer engagement." }
+          ]
+        },
+        {
+          name: "SAP Development",
+          link: "https://en.wikipedia.org/wiki/SAP",
+          desc: "SAP-based enterprise applications.",
+          children: [
+            { name: "ABAP", link: "https://en.wikipedia.org/wiki/ABAP", desc: "SAP's programming language." },
+            { name: "SAP Modules", link: "https://en.wikipedia.org/wiki/SAP_ERP", desc: "FI, MM, SD and more." }
+          ]
+        },
+        {
+          name: "Salesforce Development",
+          link: "https://en.wikipedia.org/wiki/Salesforce",
+          desc: "Salesforce customisation.",
+          children: [
+            { name: "Apex", link: "https://en.wikipedia.org/wiki/Apex_(programming_language)", desc: "Salesforce's language." },
+            { name: "Lightning Platform", link: "https://en.wikipedia.org/wiki/Salesforce", desc: "App-building on Salesforce." }
+          ]
+        },
+        {
+          name: "IT Infrastructure Management",
+          link: "https://en.wikipedia.org/wiki/IT_infrastructure",
+          desc: "Internal corporate IT.",
+          children: [
+            { name: "System Administration", link: "https://en.wikipedia.org/wiki/System_administrator", desc: "Running servers and services." },
+            { name: "Directory Services", link: "https://en.wikipedia.org/wiki/Active_Directory", desc: "Identity for the enterprise." }
+          ]
+        },
+        {
+          name: "IT Service Management",
+          link: "https://en.wikipedia.org/wiki/IT_service_management",
+          desc: "IT support and operations.",
+          children: [
+            { name: "ITIL", link: "https://en.wikipedia.org/wiki/ITIL", desc: "Best-practice service framework." },
+            { name: "Help Desk / Support", link: "https://en.wikipedia.org/wiki/Technical_support", desc: "Front-line IT support." }
+          ]
+        },
+        {
+          name: "Business Systems Integration",
+          link: "https://en.wikipedia.org/wiki/System_integration",
+          desc: "Connecting enterprise applications.",
+          children: [
+            { name: "Enterprise Service Bus", link: "https://en.wikipedia.org/wiki/Enterprise_service_bus", desc: "Messaging backbone." },
+            { name: "iPaaS", link: "https://en.wikipedia.org/wiki/Integration_platform_as_a_service", desc: "Cloud integration platforms." }
+          ]
+        }
+      ]
+    },
+    {
+      name: "10 · Research & Academia",
+      link: "https://en.wikipedia.org/wiki/Computer_science",
+      desc: "Advancing the theoretical and practical foundations of computing.",
+      children: [
+        {
+          name: "Algorithms & Complexity",
+          link: "https://en.wikipedia.org/wiki/Computational_complexity_theory",
+          desc: "Computational efficiency.",
+          children: [
+            { name: "Complexity Classes (P vs NP)", link: "https://en.wikipedia.org/wiki/P_versus_NP_problem", desc: "What's tractable to compute." },
+            { name: "Data Structures", link: "https://en.wikipedia.org/wiki/Data_structure", desc: "Organising data efficiently." },
+            { name: "Graph Algorithms", link: "https://en.wikipedia.org/wiki/Graph_theory", desc: "Networks and relationships." }
+          ]
+        },
+        {
+          name: "Theory of Computation",
+          link: "https://en.wikipedia.org/wiki/Theory_of_computation",
+          desc: "The mathematical limits of computing.",
+          children: [
+            { name: "Automata Theory", link: "https://en.wikipedia.org/wiki/Automata_theory", desc: "Abstract machines." },
+            { name: "Formal Languages", link: "https://en.wikipedia.org/wiki/Formal_language", desc: "Grammars and parsing." },
+            { name: "Computability", link: "https://en.wikipedia.org/wiki/Computability_theory", desc: "What can be computed at all." }
+          ]
+        },
+        {
+          name: "Distributed Systems Research",
+          link: "https://en.wikipedia.org/wiki/Distributed_computing",
+          desc: "New distributed architectures.",
+          children: [
+            { name: "Consensus Protocols", link: "https://en.wikipedia.org/wiki/Consensus_(computer_science)", desc: "Agreement under failure." },
+            { name: "Distributed Databases", link: "https://en.wikipedia.org/wiki/Distributed_database", desc: "Data across many nodes." }
+          ]
+        },
+        {
+          name: "AI / ML Research",
+          link: "https://en.wikipedia.org/wiki/Machine_learning",
+          desc: "New learning methods and models.",
+          children: [
+            { name: "Model Architectures", link: "https://en.wikipedia.org/wiki/Deep_learning", desc: "New network designs." },
+            { name: "AI Safety & Alignment", link: "https://en.wikipedia.org/wiki/AI_alignment", desc: "Keeping AI beneficial." }
+          ]
+        },
+        {
+          name: "Computer Vision Research",
+          link: "https://en.wikipedia.org/wiki/Computer_vision",
+          desc: "New visual intelligence methods.",
+          children: [
+            { name: "3D Reconstruction", link: "https://en.wikipedia.org/wiki/3D_reconstruction", desc: "Building 3D from images." },
+            { name: "Video Understanding", link: "https://en.wikipedia.org/wiki/Activity_recognition", desc: "Interpreting motion over time." }
+          ]
+        },
+        {
+          name: "Cryptography Research",
+          link: "https://en.wikipedia.org/wiki/Cryptography",
+          desc: "New security techniques.",
+          children: [
+            { name: "Post-Quantum Cryptography", link: "https://en.wikipedia.org/wiki/Post-quantum_cryptography", desc: "Resisting quantum attacks." },
+            { name: "Homomorphic Encryption", link: "https://en.wikipedia.org/wiki/Homomorphic_encryption", desc: "Computing on encrypted data." }
+          ]
+        },
+        {
+          name: "Computer Architecture",
+          link: "https://en.wikipedia.org/wiki/Computer_architecture",
+          desc: "Processor and system design.",
+          children: [
+            { name: "CPU & Instruction Sets", link: "https://en.wikipedia.org/wiki/Instruction_set_architecture", desc: "How processors execute." },
+            { name: "Parallel Architectures", link: "https://en.wikipedia.org/wiki/Parallel_computing", desc: "GPUs and many-core systems." },
+            { name: "Memory Hierarchy", link: "https://en.wikipedia.org/wiki/Memory_hierarchy", desc: "Caches to main memory." }
+          ]
+        },
+        {
+          name: "Human-Computer Interaction",
+          link: "https://en.wikipedia.org/wiki/Human%E2%80%93computer_interaction",
+          desc: "How people interact with technology.",
+          children: [
+            { name: "Usability", link: "https://en.wikipedia.org/wiki/Usability", desc: "Ease and effectiveness of use." },
+            { name: "Accessibility Research", link: "https://en.wikipedia.org/wiki/Computer_accessibility", desc: "Technology for all abilities." }
+          ]
+        },
+        {
+          name: "Quantum Computing",
+          link: "https://en.wikipedia.org/wiki/Quantum_computing",
+          desc: "Quantum-based computation.",
+          children: [
+            { name: "Qubits", link: "https://en.wikipedia.org/wiki/Qubit", desc: "The quantum bit." },
+            { name: "Quantum Algorithms", link: "https://en.wikipedia.org/wiki/Quantum_algorithm", desc: "Shor's, Grover's and more." }
+          ]
+        }
+      ]
+    },
+    {
+      name: "11 · UX / Product",
+      link: "https://en.wikipedia.org/wiki/User_experience_design",
+      desc: "Deciding what to build and how people experience it — the design and product side many CS grads move into.",
+      children: [
+        {
+          name: "UX Research",
+          link: "https://en.wikipedia.org/wiki/User_research",
+          desc: "Understanding users' needs and behaviour.",
+          children: [
+            { name: "User Interviews", link: "https://en.wikipedia.org/wiki/User_research", desc: "Talking to real users." },
+            { name: "Usability Testing", link: "https://en.wikipedia.org/wiki/Usability_testing", desc: "Watching users complete tasks." }
+          ]
+        },
+        {
+          name: "UI Design",
+          link: "https://en.wikipedia.org/wiki/User_interface_design",
+          desc: "Designing the visual interface.",
+          children: [
+            { name: "Visual Design", link: "https://en.wikipedia.org/wiki/Graphic_design", desc: "Typography, colour, hierarchy." },
+            { name: "Design Systems", link: "https://en.wikipedia.org/wiki/Design_system", desc: "Reusable, consistent components." },
+            { name: "Prototyping", link: "https://en.wikipedia.org/wiki/Software_prototyping", desc: "Mockups and clickable models." }
+          ]
+        },
+        {
+          name: "Interaction Design",
+          link: "https://en.wikipedia.org/wiki/Interaction_design",
+          desc: "Designing how users flow through a product.",
+          children: [
+            { name: "Information Architecture", link: "https://en.wikipedia.org/wiki/Information_architecture", desc: "Structuring content and navigation." },
+            { name: "Microinteractions", link: "https://en.wikipedia.org/wiki/Interaction_design", desc: "Small, meaningful UI responses." }
+          ]
+        },
+        {
+          name: "Product Management",
+          link: "https://en.wikipedia.org/wiki/Product_management",
+          desc: "Defining what to build, for whom and why.",
+          children: [
+            { name: "Product Strategy", link: "https://en.wikipedia.org/wiki/Product_strategy", desc: "Vision and direction." },
+            { name: "Roadmapping", link: "https://en.wikipedia.org/wiki/Technology_roadmap", desc: "Planning what ships when." },
+            { name: "User Stories", link: "https://en.wikipedia.org/wiki/User_story", desc: "Capturing requirements." }
+          ]
+        },
+        {
+          name: "Project Management",
+          link: "https://en.wikipedia.org/wiki/Project_management",
+          desc: "Planning and delivering work on time.",
+          children: [
+            { name: "Agile & Scrum", link: "https://en.wikipedia.org/wiki/Agile_software_development", desc: "Iterative delivery." },
+            { name: "Kanban", link: "https://en.wikipedia.org/wiki/Kanban_(development)", desc: "Flow-based work management." }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+/* An alternate lens: five broad TYPES of technology work (toggle with "Work lens"). */
+const LENS = {
+  name: "Five Types of Tech Work",
+  sub: "a career lens, not a formal taxonomy",
+  link: "https://en.wikipedia.org/wiki/Information_technology",
+  desc: "Instead of asking 'which technology?', ask 'what kind of work do I enjoy?' This narrows the industry fast.",
+  children: [
+    { name: "BUILD", link: "https://en.wikipedia.org/wiki/Software_development", desc: "Application & product development.", children: [
+      { name: "Software Engineers", link: "https://en.wikipedia.org/wiki/Software_engineer", desc: "Build software products." },
+      { name: "Frontend / Backend", link: "https://en.wikipedia.org/wiki/Full-stack_developer", desc: "UI and services." },
+      { name: "Mobile Developers", link: "https://en.wikipedia.org/wiki/Mobile_app_development", desc: "Phone and tablet apps." },
+      { name: "Game Developers", link: "https://en.wikipedia.org/wiki/Video_game_development", desc: "Interactive entertainment." }
+    ]},
+    { name: "INTELLIGENCE", link: "https://en.wikipedia.org/wiki/Data_science", desc: "Data & AI.", children: [
+      { name: "Data Scientists", link: "https://en.wikipedia.org/wiki/Data_science", desc: "Insights & predictive models." },
+      { name: "ML Engineers", link: "https://en.wikipedia.org/wiki/Machine_learning", desc: "Model development & productionisation." },
+      { name: "AI Engineers", link: "https://en.wikipedia.org/wiki/Retrieval-augmented_generation", desc: "Integrate AI into products." },
+      { name: "Data Engineers", link: "https://en.wikipedia.org/wiki/Data_engineering", desc: "Pipelines & processing." }
+    ]},
+    { name: "OPERATE", link: "https://en.wikipedia.org/wiki/DevOps", desc: "Infrastructure & operations.", children: [
+      { name: "Cloud Engineers", link: "https://en.wikipedia.org/wiki/Cloud_computing", desc: "Provision infrastructure." },
+      { name: "DevOps / SRE", link: "https://en.wikipedia.org/wiki/Site_reliability_engineering", desc: "Automation & reliability." },
+      { name: "Platform Engineers", link: "https://en.wikipedia.org/wiki/Platform_engineering", desc: "Developer platforms." },
+      { name: "Network Engineers", link: "https://en.wikipedia.org/wiki/Network_engineering", desc: "Connect systems." }
+    ]},
+    { name: "PROTECT", link: "https://en.wikipedia.org/wiki/Computer_security", desc: "Security & reliability.", children: [
+      { name: "Security Engineers", link: "https://en.wikipedia.org/wiki/Computer_security", desc: "Protect systems." },
+      { name: "Penetration Testers", link: "https://en.wikipedia.org/wiki/Penetration_test", desc: "Attack to defend." },
+      { name: "Security Architects", link: "https://en.wikipedia.org/wiki/Zero_trust_security_model", desc: "Design secure systems." },
+      { name: "QA Engineers", link: "https://en.wikipedia.org/wiki/Software_testing", desc: "Validate correctness." }
+    ]},
+    { name: "INNOVATE", link: "https://en.wikipedia.org/wiki/Research_and_development", desc: "Research & hardware.", children: [
+      { name: "Research Scientists", link: "https://en.wikipedia.org/wiki/Computer_science", desc: "Advance the field." },
+      { name: "Embedded Engineers", link: "https://en.wikipedia.org/wiki/Embedded_system", desc: "Software near the metal." },
+      { name: "Chip Designers", link: "https://en.wikipedia.org/wiki/Very-large-scale_integration", desc: "Design processors." },
+      { name: "Robotics Engineers", link: "https://en.wikipedia.org/wiki/Robotics", desc: "Intelligent machines." }
+    ]}
+  ]
+};
+
+/* ============================================================================
+   MIND MAP ENGINE — horizontal tidy-tree (L→R), pan/zoom, click-to-expand. No libraries.
+   ============================================================================ */
+const PALETTE = ["#6ea8fe","#7ee3c9","#c7a0ff","#ffb28a","#ff8fab","#8fd3ff","#ffd479","#9af0b0","#d6a4ff","#8aa0ff","#ffc6e0"];
+const svg = document.getElementById("svg");
+const gViewport = document.getElementById("viewport");
+const gEdges = document.getElementById("edges");
+const gNodes = document.getElementById("nodes");
+const SVGNS = "http://www.w3.org/2000/svg";
+
+let ROOT = null;           // working tree root (DATA or LENS)
+let view = { x: 0, y: 0, k: 1 };  // pan x/y and zoom k
+
+/* --- build an internal tree with layout state --- */
+let uid = 0;
+function makeTree(src, depth, colorIdx) {
+  const n = {
+    id: uid++, name: src.name, sub: src.sub || "", link: src.link, desc: src.desc || "",
+    depth, colorIdx,
+    expanded: depth === 0,           // root starts expanded; domains collapsed
+    children: [],
+    x: 0, y: 0,
+    _raw: src
+  };
+  if (src.children) {
+    src.children.forEach((c, i) => {
+      const ci = depth === 0 ? i : colorIdx;   // domains each get their own palette colour
+      n.children.push(makeTree(c, depth + 1, ci));
+    });
+  }
+  return n;
+}
+
+/* --- horizontal tidy-tree layout (root on the left, children to the right) ---
+   x is fixed per depth (columns). y is packed by leaf count so sibling
+   subtrees never overlap: each visible leaf consumes ROW_STEP vertically and
+   every parent is centred on the vertical span of its visible children.
+   This is overlap-free by construction at any depth. */
+const COL_STEP = 300;   // horizontal distance between levels
+const ROW_STEP = 46;    // vertical distance between adjacent leaves
+let _cursorY = 0;
+
+function layout(root) {
+  _cursorY = 0;
+  assignY(root, 0);
+}
+/* returns the y assigned to `node` */
+function assignY(node, depth) {
+  node.x = depth * COL_STEP;
+  const kids = node.children;
+  if (node.expanded && kids.length) {
+    const ys = kids.map(c => assignY(c, depth + 1));
+    // centre parent on the midpoint of first and last child
+    node.y = (ys[0] + ys[ys.length - 1]) / 2;
+  } else {
+    // a visible leaf (collapsed or truly childless): take the next row
+    node.y = _cursorY;
+    _cursorY += ROW_STEP;
+  }
+  return node.y;
+}
+
+/* --- node pill sizing (left-anchored) --- */
+function pillWidth(text, fs) { return Math.max(60, text.length * fs * 0.62 + 34); }
+
+/* --- render everything --- */
+// horizontal S-curve from a parent's right edge to a child's left edge
+function curve(x1,y1,x2,y2) {
+  const mx = (x1 + x2) / 2;
+  return `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
+}
+function visibleNodes(root) {
+  const out = [];
+  function rec(n, parent) {
+    out.push({ n, parent });
+    if (n.expanded) n.children.forEach(c => rec(c, n));
+  }
+  rec(root, null);
+  return out;
+}
+
+// node geometry (left-anchored pills)
+function nodeDims(n) {
+  const isRoot = n.depth === 0;
+  const fs = isRoot ? 15 : n.depth === 1 ? 13.5 : 12;
+  const h = isRoot ? 44 : n.depth === 1 ? 36 : 30;
+  const w = pillWidth(n.name, fs);
+  return { isRoot, fs, h, w };
+}
+
+function render() {
+  layout(ROOT);
+  gEdges.innerHTML = ""; gNodes.innerHTML = "";
+  const vis = visibleNodes(ROOT);
+
+  // edges — from right edge of parent pill to left edge of child pill
+  vis.forEach(({ n, parent }) => {
+    if (!parent) return;
+    const pd = nodeDims(parent), cd = nodeDims(n);
+    const x1 = parent.x + pd.w, y1 = parent.y;   // parent right edge
+    const x2 = n.x, y2 = n.y;                     // child left edge
+    const path = document.createElementNS(SVGNS, "path");
+    path.setAttribute("class", "edge");
+    path.setAttribute("d", curve(x1, y1, x2, y2));
+    path.setAttribute("stroke", PALETTE[n.colorIdx % PALETTE.length]);
+    path.dataset.id = n.id;
+    gEdges.appendChild(path);
+  });
+
+  // nodes — pill anchored at (n.x, n.y) as its LEFT-middle point
+  vis.forEach(({ n }) => {
+    const { isRoot, fs, h, w } = nodeDims(n);
+    const color = PALETTE[n.colorIdx % PALETTE.length];
+
+    const g = document.createElementNS(SVGNS, "g");
+    g.setAttribute("class", "node" + (n.children.length ? " has-children" : ""));
+    g.setAttribute("transform", `translate(${n.x},${n.y})`);
+    g.dataset.id = n.id;
+
+    const rect = document.createElementNS(SVGNS, "rect");
+    rect.setAttribute("class", "bg");
+    rect.setAttribute("x", 0); rect.setAttribute("y", -h/2);
+    rect.setAttribute("width", w); rect.setAttribute("height", h);
+    rect.setAttribute("rx", 11); rect.setAttribute("ry", 11);
+    rect.setAttribute("fill", isRoot ? "#1b2030" : hexA(color, 0.14));
+    rect.setAttribute("stroke", color);
+    g.appendChild(rect);
+
+    const label = document.createElementNS(SVGNS, "text");
+    label.setAttribute("x", 14);
+    label.setAttribute("y", 0);
+    label.setAttribute("text-anchor", "start");
+    label.setAttribute("font-size", fs);
+    label.setAttribute("font-weight", isRoot ? 700 : n.depth === 1 ? 600 : 500);
+    label.textContent = n.name;
+    g.appendChild(label);
+
+    // expander badge on the RIGHT edge if it has children
+    if (n.children.length) {
+      const badge = document.createElementNS(SVGNS, "circle");
+      badge.setAttribute("cx", w); badge.setAttribute("cy", 0);
+      badge.setAttribute("r", 10);
+      badge.setAttribute("fill", color);
+      g.appendChild(badge);
+      const sign = document.createElementNS(SVGNS, "text");
+      sign.setAttribute("class", "expander");
+      sign.setAttribute("x", w); sign.setAttribute("y", 0.5);
+      sign.setAttribute("fill", "#0a0d14");
+      sign.textContent = n.expanded ? "–" : "+";
+      g.appendChild(sign);
+    }
+
+    g.addEventListener("click", (e) => { e.stopPropagation(); onNodeClick(n); });
+    gNodes.appendChild(g);
+  });
+}
+
+function hexA(hex, a) {
+  const h = hex.replace("#","");
+  const r = parseInt(h.substring(0,2),16), gg = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${gg},${b},${a})`;
+}
+
+/* --- interactions --- */
+function findNode(id, node=ROOT) {
+  if (node.id === id) return node;
+  for (const c of node.children) { const r = findNode(id, c); if (r) return r; }
+  return null;
+}
+function onNodeClick(n) {
+  if (n.children.length) {
+    // remember the clicked node's on-screen position so it stays put
+    const beforeX = n.x, beforeY = n.y;
+    n.expanded = !n.expanded;
+    layout(ROOT);
+    // compensate pan so this node doesn't jump as siblings re-pack
+    view.x += (beforeX - n.x) * view.k;
+    view.y += (beforeY - n.y) * view.k;
+    applyView();
+    render();
+  }
+  showDetail(n);
+}
+
+/* --- detail panel --- */
+const detail = document.getElementById("detail");
+function pathTo(target, node=ROOT, acc=[]) {
+  const here = [...acc, node.name];
+  if (node.id === target.id) return here;
+  for (const c of node.children) { const r = pathTo(target, c, here); if (r) return r; }
+  return null;
+}
+function showDetail(n) {
+  const color = PALETTE[n.colorIdx % PALETTE.length];
+  document.getElementById("dDot").style.background = n.depth === 0 ? "#fff" : color;
+  document.getElementById("dTitle").textContent = n.name;
+  const p = pathTo(n) || [n.name];
+  document.getElementById("dPath").textContent = p.length > 1 ? p.slice(0, -1).join("  ›  ") : (n.sub || "");
+  document.getElementById("dDesc").textContent = n.desc || "";
+  const link = document.getElementById("dLink");
+  link.href = n.link; 
+  detail.classList.add("show");
+}
+document.getElementById("dclose").addEventListener("click", () => detail.classList.remove("show"));
+
+/* ============================================================================
+   PAN / ZOOM
+   ============================================================================ */
+function applyView() {
+  gViewport.setAttribute("transform", `translate(${view.x},${view.y}) scale(${view.k})`);
+}
+const stage = document.getElementById("stage");
+let pointerDown = false, panning = false, last = null, moved = 0, activePointer = null;
+const DRAG_THRESHOLD = 5; // px of movement before we treat it as a pan (not a click)
+
+stage.addEventListener("pointerdown", (e) => {
+  pointerDown = true; panning = false; moved = 0;
+  last = { x: e.clientX, y: e.clientY };
+  activePointer = e.pointerId;
+  // NOTE: do NOT capture the pointer here — capturing retargets all events
+  // to the stage and prevents node <g> elements from ever receiving clicks.
+});
+stage.addEventListener("pointermove", (e) => {
+  if (!pointerDown) return;
+  const dx = e.clientX - last.x, dy = e.clientY - last.y;
+  moved += Math.abs(dx) + Math.abs(dy);
+  // only start panning once movement crosses the threshold
+  if (!panning && moved > DRAG_THRESHOLD) {
+    panning = true;
+    stage.classList.add("grabbing");
+    try { stage.setPointerCapture(activePointer); } catch (_) {}
+  }
+  if (panning) {
+    view.x += dx; view.y += dy;
+    last = { x: e.clientX, y: e.clientY };
+    applyView();
+  }
+});
+function endPointer(e) {
+  if (!pointerDown) return;
+  pointerDown = false;
+  stage.classList.remove("grabbing");
+  try { stage.releasePointerCapture(activePointer); } catch (_) {}
+  activePointer = null;
+  // keep `panning` true until the trailing click fires, so we can suppress it
+  if (panning) setTimeout(() => { panning = false; }, 0);
+}
+stage.addEventListener("pointerup", endPointer);
+stage.addEventListener("pointercancel", endPointer);
+
+// A click that followed a real drag should be ignored (capture phase).
+stage.addEventListener("click", (e) => {
+  if (panning) { e.stopPropagation(); return; }
+  // click on empty canvas closes the detail panel
+  if (e.target.id === "svg" || e.target.id === "stage") detail.classList.remove("show");
+}, true);
+
+stage.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const rect = svg.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const factor = e.deltaY < 0 ? 1.12 : 1/1.12;
+  zoomAt(mx, my, factor);
+}, { passive: false });
+
+function zoomAt(cx, cy, factor) {
+  const k2 = Math.min(2.6, Math.max(0.25, view.k * factor));
+  const r = k2 / view.k;
+  view.x = cx - (cx - view.x) * r;
+  view.y = cy - (cy - view.y) * r;
+  view.k = k2;
+  applyView();
+}
+document.getElementById("zin").addEventListener("click", () => zoomAt(innerWidth/2, innerHeight/2, 1.2));
+document.getElementById("zout").addEventListener("click", () => zoomAt(innerWidth/2, innerHeight/2, 1/1.2));
+document.getElementById("zfit").addEventListener("click", fitView);
+
+function fitView() {
+  // fit the currently-visible nodes into the viewport (accounting for pill width)
+  const vis = visibleNodes(ROOT);
+  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+  vis.forEach(({n}) => {
+    const { w, h } = nodeDims(n);
+    minX=Math.min(minX,n.x); maxX=Math.max(maxX,n.x + w);
+    minY=Math.min(minY,n.y - h/2); maxY=Math.max(maxY,n.y + h/2);
+  });
+  const padX = 80, padY = 70;
+  const w = (maxX - minX) + padX*2, h = (maxY - minY) + padY*2;
+  const k = Math.min(1.4, Math.max(0.2, Math.min(innerWidth / w, innerHeight / h)));
+  view.k = k;
+  // left-anchor horizontally (tree grows rightward from the left margin),
+  // centre vertically on the visible content
+  view.x = padX * k - minX * k + 10;
+  const cy = (minY + maxY) / 2;
+  view.y = innerHeight/2 - cy * k;
+  applyView();
+}
+
+/* ============================================================================
+   SEARCH — expands ancestors of matches, highlights, dims the rest.
+   ============================================================================ */
+const searchInput = document.getElementById("search");
+const clearBtn = document.getElementById("clearBtn");
+
+function expandAncestorsOf(pred) {
+  // expand any node that has a matching descendant
+  function rec(node) {
+    let hasMatch = pred(node);
+    for (const c of node.children) { if (rec(c)) { node.expanded = true; hasMatch = true; } }
+    return hasMatch;
+  }
+  rec(ROOT);
+}
+function clearMatches() {
+  document.querySelectorAll(".node").forEach(el => el.classList.remove("match","dim"));
+  document.querySelectorAll(".edge").forEach(el => el.classList.remove("dim"));
+}
+function doSearch(term) {
+  term = term.trim().toLowerCase();
+  clearBtn.style.display = term ? "block" : "none";
+  if (!term) { clearMatches(); return; }
+  const pred = (n) => n.name.toLowerCase().includes(term) || (n.desc && n.desc.toLowerCase().includes(term));
+  // collapse all first (keep root), then expand paths to matches
+  ROOT.children.forEach(d => collapseAll(d));
+  expandAncestorsOf(pred);
+  render();
+  // mark matches / dim others
+  const matchIds = new Set();
+  (function rec(n){ if (pred(n)) matchIds.add(n.id); n.children.forEach(rec); })(ROOT);
+  document.querySelectorAll(".node").forEach(el => {
+    const id = Number(el.dataset.id);
+    if (matchIds.has(id)) el.classList.add("match"); else el.classList.add("dim");
+  });
+  document.querySelectorAll(".edge").forEach(el => el.classList.add("dim"));
+  fitView();
+}
+function collapseAll(node) { node.expanded = false; node.children.forEach(collapseAll); }
+
+searchInput.addEventListener("input", (e) => doSearch(e.target.value));
+clearBtn.addEventListener("click", () => { searchInput.value = ""; doSearch(""); searchInput.focus(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "/" && document.activeElement !== searchInput) { e.preventDefault(); searchInput.focus(); }
+  if (e.key === "Escape") { if (detail.classList.contains("show")) detail.classList.remove("show"); else { searchInput.value=""; doSearch(""); } }
+});
+
+/* ============================================================================
+   LENS TOGGLE + RESET + INIT
+   ============================================================================ */
+let usingLens = false;
+function loadTree(src) {
+  uid = 0;
+  ROOT = makeTree(src, 0, 0);
+  render();
+  fitView();
+}
+document.getElementById("btnLens").addEventListener("click", (e) => {
+  usingLens = !usingLens;
+  e.target.textContent = usingLens ? "Domain view" : "Work lens";
+  searchInput.value = "";
+  loadTree(usingLens ? LENS : DATA);
+});
+document.getElementById("btnReset").addEventListener("click", () => {
+  searchInput.value = "";
+  loadTree(usingLens ? LENS : DATA);
+});
+
+loadTree(DATA);
+// fade the hint after a few seconds
+setTimeout(() => { const h = document.getElementById("hint"); if (h) h.style.opacity = 0; }, 6000);
+window.addEventListener("resize", () => {}); // layout is viewport-independent; pan stays
+</script>
+</body>
+</html>
